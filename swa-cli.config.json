@@ -1,0 +1,15 @@
+{
+  "configurations": {
+    "default": {
+      "appLocation": "src/web",
+      "apiLocation": "src/api",
+      "host": "localhost",
+      "port": 4280,
+      "apiLanguage": "node",
+      "apiVersion": "20",
+      "outputLocation": "out",
+      "appDevserverUrl": "http://localhost:3000",
+      "run": "npm run dev"
+    }
+  }
+}

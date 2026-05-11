@@ -1,0 +1,43 @@
+name: azure-swa-nextjs-postgres
+metadata:
+  template: create-azure-app
+services:
+  web:
+    project: src/web
+    dist: out
+    host: staticwebapp
+    config:
+      apiDir: src/api
+hooks:
+  prepackage:
+    windows:
+      shell: pwsh
+      run: |
+        npm run db:generate
+
+        cd src/web && npm install && npm run build
+        cd ../api && npm install && npm run build
+        cd ../..
+        node scripts/sync-prisma-client.mjs
+        node scripts/slim-swa-api-package.mjs
+        Get-ChildItem "src/api/node_modules/.prisma/client" -Filter *.node | Where-Object { $_.Name -notlike '*debian*' } | Remove-Item -Force -ErrorAction SilentlyContinue
+
+    posix:
+      shell: sh
+      run: |
+        npm run db:generate
+
+        cd src/web && npm install && npm run build
+        cd ../api && npm install && npm run build
+        cd ../..
+        node scripts/sync-prisma-client.mjs
+        node scripts/slim-swa-api-package.mjs
+        find src/api/node_modules/.prisma/client -name "*.node" ! -name "*debian*" -delete 2>/dev/null || true
+
+  postprovision:
+    windows:
+      shell: pwsh
+      run: scripts/migrate.ps1
+    posix:
+      shell: sh
+      run: scripts/migrate.sh

@@ -1,0 +1,37 @@
+name: Provision Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Azure environment name'
+        required: false
+        default: 'azure-swa-nextjs-postgres'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    name: Provision Azure Resources
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install azd
+        uses: Azure/setup-azd@v2
+
+      - name: Provision infrastructure
+        run: azd provision --no-prompt
+        env:
+          AZURE_ENV_NAME: ${{ inputs.environment || 'azure-swa-nextjs-postgres' }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}

@@ -1,0 +1,84 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  build-and-deploy:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    name: Build and Deploy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get SWA deployment token
+        id: swa-token
+        run: |
+          SWA_NAME=$(az staticwebapp list --resource-group rg-${{ vars.AZURE_ENV_NAME || 'azure-swa-nextjs-postgres' }} --query "[0].name" -o tsv)
+          TOKEN=$(az staticwebapp secrets list --name "$SWA_NAME" --query "properties.apiKey" -o tsv)
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run install:web && npm run install:api
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ steps.swa-token.outputs.token }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: src/web/out
+          api_location: src/api
+          skip_app_build: true
+          skip_api_build: true
+
+  close-preview:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close Preview Environment
+    steps:
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get SWA deployment token
+        id: swa-token
+        run: |
+          SWA_NAME=$(az staticwebapp list --resource-group rg-${{ vars.AZURE_ENV_NAME || 'azure-swa-nextjs-postgres' }} --query "[0].name" -o tsv)
+          TOKEN=$(az staticwebapp secrets list --name "$SWA_NAME" --query "properties.apiKey" -o tsv)
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Close preview
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ steps.swa-token.outputs.token }}
+          action: close

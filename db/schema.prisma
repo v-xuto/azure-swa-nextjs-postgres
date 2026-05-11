@@ -1,0 +1,34 @@
+// Prisma schema for azure-swa-nextjs-postgres
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows", "debian-openssl-3.0.x", "debian-openssl-1.1.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items Item[]
+}
+
+model Item {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+}

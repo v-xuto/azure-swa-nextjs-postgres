@@ -1,0 +1,22 @@
+{
+  "name": "azure-swa-nextjs-postgres-api",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/src/functions/*.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "start": "func start",
+    "prestart": "npx prisma generate --schema=../../db/schema.prisma && node ../../scripts/sync-prisma-client.mjs && tsc",
+    "generate:prisma": "prisma generate --schema=../../db/schema.prisma",
+    "sync:prisma": "node ../../scripts/sync-prisma-client.mjs"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  }
+}
