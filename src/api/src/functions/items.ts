@@ -5,6 +5,34 @@ import {
   InvocationContext,
 } from '@azure/functions';
 import { getPrisma } from '../lib/db.js';
+import { requireAuth } from '../lib/auth.js';
+
+function normalizeUserDetails(userDetails: string): { email: string | null; name: string | null } {
+  const trimmed = userDetails.trim();
+  return {
+    email: trimmed.includes('@') ? trimmed.toLowerCase() : null,
+    name: trimmed.length > 0 ? trimmed : null,
+  };
+}
+
+async function ensureCurrentUser(request: HttpRequest) {
+  const authUser = requireAuth(request);
+  const prisma = getPrisma();
+  const profile = normalizeUserDetails(authUser.userDetails);
+
+  return prisma.user.upsert({
+    where: { externalId: authUser.userId },
+    update: {
+      email: profile.email,
+      name: profile.name,
+    },
+    create: {
+      externalId: authUser.userId,
+      email: profile.email,
+      name: profile.name,
+    },
+  });
+}
 
 // GET /api/items
 app.http('listItems', {
@@ -15,6 +43,7 @@ app.http('listItems', {
     request: HttpRequest,
     context: InvocationContext
   ): Promise<HttpResponseInit> => {
+    requireAuth(request);
     const prisma = getPrisma();
     const items = await prisma.item.findMany({ orderBy: { createdAt: 'desc' } });
     return { jsonBody: items };
@@ -35,6 +64,7 @@ app.http('getItem', {
       return { status: 400, jsonBody: { error: 'Invalid item ID' } };
     }
 
+    requireAuth(request);
     const prisma = getPrisma();
     const item = await prisma.item.findUnique({ where: { id } });
     if (!item) {
@@ -54,17 +84,14 @@ app.http('createItem', {
     request: HttpRequest,
     context: InvocationContext
   ): Promise<HttpResponseInit> => {
+    const currentUser = await ensureCurrentUser(request);
     const body = (await request.json()) as {
       title?: string;
       description?: string;
-      userId?: number;
     };
 
     if (!body.title) {
       return { status: 400, jsonBody: { error: 'Title is required' } };
-    }
-    if (!body.userId) {
-      return { status: 400, jsonBody: { error: 'userId is required' } };
     }
 
     const prisma = getPrisma();
@@ -72,7 +99,7 @@ app.http('createItem', {
       data: {
         title: body.title,
         description: body.description ?? null,
-        userId: body.userId,
+        userId: currentUser.id,
       },
     });
 
@@ -94,6 +121,7 @@ app.http('updateItem', {
       return { status: 400, jsonBody: { error: 'Invalid item ID' } };
     }
 
+    requireAuth(request);
     const prisma = getPrisma();
     const existing = await prisma.item.findUnique({ where: { id } });
     if (!existing) {
@@ -133,6 +161,7 @@ app.http('deleteItem', {
       return { status: 400, jsonBody: { error: 'Invalid item ID' } };
     }
 
+    requireAuth(request);
     const prisma = getPrisma();
     const existing = await prisma.item.findUnique({ where: { id } });
     if (!existing) {

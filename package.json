@@ -1,6 +1,6 @@
 {
   "name": "azure-swa-nextjs-postgres",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,11 +12,12 @@
     "dev:api": "cd src/api && npm run start",
     "build:api": "cd src/api && npm run build",
     "db:generate": "prisma generate --schema=db/schema.prisma",
-    "db:migrate": "prisma migrate dev --schema=db/schema.prisma",
+    "db:migrate": "prisma migrate deploy --schema=db/schema.prisma && prisma generate --schema=db/schema.prisma",
+    "db:migrate:dev": "prisma migrate dev --schema=db/schema.prisma",
     "db:seed": "tsx --env-file=.env db/seed.ts",
     "db:seed:azure": "pwsh scripts/seed.ps1",
     "db:seed:azure:posix": "bash scripts/seed.sh",
-    "setup": "npm install && docker compose up -d && npm run install:api && npm run install:web && npm run build:api && npm run db:generate && npm run db:migrate && npm run db:seed",
+    "setup": "node ./scripts/setup.mjs",
     "dev": "swa start"
   },
   "dependencies": {

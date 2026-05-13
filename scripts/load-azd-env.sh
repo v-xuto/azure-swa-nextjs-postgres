@@ -29,18 +29,18 @@ while IFS='=' read -r name value; do
   fi
 
   case "$name" in
-    \#*)
+    #*)
       continue
       ;;
   esac
 
   if [ -z "${!name:-}" ]; then
-    if [ "${value#\"}" != "$value" ] && [ "${value%\"}" != "$value" ]; then
-      value="${value#\"}"
-      value="${value%\"}"
-    elif [ "${value#\'}" != "$value" ] && [ "${value%\'}" != "$value" ]; then
-      value="${value#\'}"
-      value="${value%\'}"
+    if [ "${value#"}" != "$value" ] && [ "${value%"}" != "$value" ]; then
+      value="${value#"}"
+      value="${value%"}"
+    elif [ "${value#'}" != "$value" ] && [ "${value%'}" != "$value" ]; then
+      value="${value#'}"
+      value="${value%'}"
     fi
 
     export "$name=$value"

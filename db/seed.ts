@@ -6,9 +6,13 @@ async function main(): Promise<void> {
   console.log('🌱 Seeding database...');
 
   const alice = await prisma.user.upsert({
-    where: { email: 'alice@example.com' },
-    update: {},
+    where: { externalId: 'sample-alice' },
+    update: {
+      email: 'alice@example.com',
+      name: 'Alice',
+    },
     create: {
+      externalId: 'sample-alice',
       email: 'alice@example.com',
       name: 'Alice',
       items: {
@@ -21,9 +25,13 @@ async function main(): Promise<void> {
   });
 
   const bob = await prisma.user.upsert({
-    where: { email: 'bob@example.com' },
-    update: {},
+    where: { externalId: 'sample-bob' },
+    update: {
+      email: 'bob@example.com',
+      name: 'Bob',
+    },
     create: {
+      externalId: 'sample-bob',
       email: 'bob@example.com',
       name: 'Bob',
       items: {
